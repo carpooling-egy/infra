@@ -1,0 +1,109 @@
+### This file is used to override the default docker-compose file for local development
+services:
+
+  apisix:
+    image: apache/apisix:latest
+    container_name: apisix
+    restart: always
+    environment:
+      APISIX_STAND_ALONE: "true"  
+      APISIX_CONFIG_PATH: "/usr/local/apisix/conf/apisix.yaml"
+      APISIX_LOG_LEVEL: debug
+    volumes: 
+      # Mount the local APISIX configuration file to be make local development easier
+      - ../api-gateway/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
+    ports:
+      - 9080:9080  # APISIX HTTP Proxy
+      - 9443:9443  # APISIX HTTPS Proxy, not currently enabled
+      - 9180:9180  # APISIX Admin API helps in debugging
+    networks:
+      - shared_network
+
+
+  auth-service:
+    build:
+      context: ../authentication
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8003:8003"
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-service-account.json
+      OTEL_SERVICE_NAME: my-fastapi-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://otel-collector:4318/v1/logs
+      OTEL_RESOURCE_ATTRIBUTES: service.name=my-fastapi-service
+      OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: true
+      OTEL_LOGS_EXPORTER: otlp  # ✅ Enables OpenTelemetry logging
+    volumes:
+      - ${LOCAL_FIREBASE_JSON_PATH}:/app/firebase-service-account.json
+
+    depends_on:
+      - otel-collector
+
+    networks:
+    - shared_network
+
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    depends_on:
+      - opensearch
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+
+    networks:
+    - shared_network
+  # ✅ OpenSearch (Log Storage)
+
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    environment:
+      - cluster.name=demo-cluster
+      - node.name=demo-node
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms300m -Xmx300m
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    networks:
+    - shared_network
+
+  # ✅ Grafana (UI for logs & metrics)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - opensearch
+
+    networks:
+    - shared_network
+
+networks:
+  shared_network:
+    driver: bridge
+
+
+
+volumes:
+  opensearch-data:
