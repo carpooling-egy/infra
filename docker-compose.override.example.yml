@@ -10,7 +10,7 @@ services:
       APISIX_CONFIG_PATH: "/usr/local/apisix/conf/apisix.yaml"
       APISIX_LOG_LEVEL: debug
     volumes: 
-      # Mount the local APISIX configuration file to be make local development easier
+      # Mount the local APISIX configuration file to make local development easier
       - ../api-gateway/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
       - 9080:9080  # APISIX HTTP Proxy
@@ -18,6 +18,51 @@ services:
       - 9180:9180  # APISIX Admin API helps in debugging
     networks:
       - shared_network
+
+  auth-service:
+    build:
+      context: ../authentication
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8003:8003"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-service-account.json
+    volumes:
+      - ${LOCAL_FIREBASE_JSON_PATH}:/app/firebase-service-account.json
+    networks:
+    - shared_network
+
+  profile-service:
+    build:
+      context: ../profile
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PROFILE_DB_USER=${PROFILE_DB_USER}
+      - PROFILE_DB_PASSWORD=${PROFILE_DB_PASSWORD}
+      - PROFILE_DD_URL=jdbc:mysql://mysql:3306/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    depends_on:
+      - mysql
+    networks:
+    - shared_network
+
+  mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
+    image: mysql:latest
+    environment:
+    # The current setup works if we will only need to create one user, 
+    # else if another service wish to have a separate DB we need another way (maybe an initalization script)
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=profileDB 
+      - MYSQL_USER=${PROFILE_DB_USER} # has access to profileDB
+      - MYSQL_PASSWORD=${PROFILE_DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - shared_network
+
+
 
 networks:
   shared_network:
