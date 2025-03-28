@@ -13,17 +13,17 @@ services:
     networks:
       - shared_network
 
-  nginx:
-    ### This is just a placeholder for the upstream service
-    image: nginx:latest
-    container_name: nginx
-    restart: always
-    networks:
-      - shared_network
+  # nginx:
+  #   ### This is just a placeholder for the upstream service
+  #   image: nginx:latest
+  #   container_name: nginx
+  #   restart: always
+  #   networks:
+  #     - shared_network
 
-  app:
+  auth-service:
     image: carpooling/authentication:latest
-    container_name: auth-service
+    container_name: auth
     ports:
       - "8003:8003"
     environment:
@@ -33,6 +33,39 @@ services:
 
     networks:
     - shared_network
+
+  profile-service:
+    image: carpooling/profile:latest
+    container_name: profile
+    ports:
+      - "8080:8080"
+    environment:
+      - PROFILE_DB_USER=${PROFILE_DB_USER}
+      - PROFILE_DB_PASSWORD=${PROFILE_DB_PASSWORD}
+      - PROFILE_DB_URL=jdbc:mysql://mysql:3306/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    networks:
+      - shared_network
+
+    depends_on:
+      - mysql
+
+  mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
+    image: mysql:latest
+    environment:
+    # The current setup works if we will only need to create one user, 
+    # else if another service wish to have a separate DB we need another way (maybe an initalization script)
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=profileDB 
+      - MYSQL_USER=${PROFILE_DB_USER} # has access to profileDB
+      - MYSQL_PASSWORD=${PROFILE_DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - shared_network
+
+
+volumes:
+    mysql_data:
 
 networks:
   shared_network:
