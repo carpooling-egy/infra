@@ -48,6 +48,26 @@ services:
     networks:
     - shared_network
 
+  # Ride matching service - matches riders with drivers
+  matching-service:
+    build:
+      context: ../matching_engine
+      dockerfile: Dockerfile
+    container_name: matching-service
+    restart: unless-stopped
+    environment:
+      # In the future, this could be used to configure the matching interval
+      - MATCHER_INTERVAL=15m
+    volumes:
+      # Mount a volume for logs if needed
+      - ride-matcher-logs:/app/logs
+    healthcheck:
+      test: [ "CMD", "ps", "aux", "|", "grep", "ride-matcher", "||", "exit", "1" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
     image: mysql:latest
     environment:
@@ -67,3 +87,7 @@ services:
 networks:
   shared_network:
     driver: bridge
+
+volumes:
+  ride-matcher-logs:
+    driver: local
