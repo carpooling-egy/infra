@@ -77,6 +77,7 @@ services:
     networks:
       - shared_network
 
+
   valhalla_gis_ops:
     container_name: valhalla_gis-ops
     image: ghcr.io/nilsnolde/docker-valhalla/valhalla:latest
@@ -93,16 +94,48 @@ services:
     dns:
       - 8.8.8.8
     restart: unless-stopped
+
+  channel:
+    image: nats
+    container_name: channel-server
+    ports:
+      - "4222:4222" # NATS client port
+      - "8222:8222" # NATS monitoring port
+    volumes:
+      - ./channel_setup/nats.conf:/etc/nats/nats-server.conf
+      - channel_data:/data
+    command: ["-c", "/etc/nats/nats-server.conf"]
+
+    networks:
+      - shared_network
+
+  channel-init:
+    build:
+      context: ./channel_setup
+      dockerfile: Dockerfile
+    container_name: channel-init
+    depends_on:
+      - channel
+    environment:
+      - NATS_URL=nats://channel:4222
+      - NATS_USER=${NATS_ADMIN_USERNAME}
+      - NATS_PASSWORD=${NATS_ADMIN_PWD}
+
     networks:
       - shared_network
 
 
 volumes:
   mysql_data:
+    driver: local
+
   ride-matcher-logs:
     driver: local
     
   valhalla_data:
+    driver: local
+
+  channel_data:
       driver: local
 
 networks:
