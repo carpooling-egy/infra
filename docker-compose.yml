@@ -53,6 +53,9 @@ services:
     environment:
       # In the future, this could be used to configure the matching interval
       - MATCHER_INTERVAL=15m
+      - NATS_URL=nats://channel:4222
+      - NATS_USER=${NATS_PRODUCER_USERNAME}
+      - NATS_PASSWORD=${NATS_PRODUCER_PWD}
     volumes:
       # Mount a volume for logs if needed
       - ride-matcher-logs:/app/logs
