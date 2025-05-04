@@ -3,5 +3,5 @@
 *.env.*
 !*.env.example
 *.conf
-*.idea
+*.idea/
 docker-compose.override.yml
