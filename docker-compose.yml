@@ -77,11 +77,30 @@ services:
     networks:
       - shared_network
 
+  valhalla_gis_ops:
+    container_name: valhalla_gis-ops
+    image: ghcr.io/nilsnolde/docker-valhalla/valhalla:latest
+    ports:
+      - "8002:8002"
+    volumes:
+      - valhalla_data:/custom_files
+    environment:
+    # TODO: change tile_urls to the correct region
+      - tile_urls=https://download.geofabrik.de/europe/andorra-latest.osm.pbf
+    dns:
+      - 8.8.8.8
+    restart: unless-stopped
+    networks:
+      - shared_network
+
 
 volumes:
   mysql_data:
   ride-matcher-logs:
     driver: local
+    
+  valhalla_data:
+      driver: local
 
 networks:
   shared_network:
