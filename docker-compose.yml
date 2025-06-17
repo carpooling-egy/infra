@@ -86,7 +86,10 @@ services:
       - valhalla_data:/custom_files
     environment:
     # TODO: change tile_urls to the correct region
-      - tile_urls=https://download.geofabrik.de/europe/andorra-latest.osm.pbf
+      - tile_urls=https://download.geofabrik.de/africa/egypt-latest.osm.pbf
+      - use_tiles_ignore_pbf=True
+      - force_rebuild=True
+      - build_tar=True
     dns:
       - 8.8.8.8
     restart: unless-stopped
