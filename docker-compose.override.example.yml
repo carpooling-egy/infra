@@ -92,13 +92,13 @@ services:
     ports:
       - "8081:8080"        # adjust host:container ports as needed
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://mysql:5432/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=${PROFILE_DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=${PROFILE_DB_PASSWORD}
-      - TRIP_MINLEADTIMEMINUTES=30
-      - TRIP_MAXUPCOMINGTRIPS=30
-      - TRIP_MAXTRIPSPERDAY=5
-      - TRIP_MAXTRIPSTODAY=5
+      - SPRING_DATASOURCE_URL= jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      - SPRING_DATASOURCE_USERNAME= ${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD= ${SPRING_DATASOURCE_PASSWORD}
+      - TRIP_MIN_LEAD_TIME_MINUTES=30
+      - TRIP_MAX_UPCOMING_TRIPS=30
+      - TRIP_MAX_TRIPS_PER_DAY=5
+      - TRIP_MAX_TRIPS_TODAY=5
       - ROUTE_SERVICE_URL=http://valhalla_gis-ops:8002/route
       - GENDER_SERVICE_URL_TEMPLATE=https://profile-service:8080/api/profiles/gender/{userId}
       - MATCHING_CONSUMER_POLL_DELAY_MS=60000

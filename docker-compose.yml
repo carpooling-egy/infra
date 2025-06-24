@@ -1,16 +1,4 @@
 version: '3.8'
-
-networks:
-  shared_network:
-    driver: bridge
-
-volumes:
-  mysql_data:
-  ride-matcher-logs:
-    driver: local
-  valhalla_data:
-    driver: local
-
 services:
   apisix:
     image: carpooling/api-gateway:latest
@@ -104,12 +92,12 @@ services:
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
-      SPRING_DATASOURCE_USERNAME: admin_carpooling_app
-      SPRING_DATASOURCE_PASSWORD: "Fr75$gj2@o9)"
-      TRIP_MINLEADTIMEMINUTES: 30
-      TRIP_MAXUPCOMINGTRIPS: 30
-      TRIP_MAXTRIPSPERDAY: 5
-      TRIP_MAXTRIPSTODAY: 5
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      TRIP_MIN_LEAD_TIME_MINUTES: 30
+      TRIP_MAX_UPCOMING_TRIPS: 30
+      TRIP_MAX_TRIPS_PER_DAY: 5
+      TRIP_MAX_TRIPS_TODAY: 5
       ROUTE_SERVICE_URL: http://valhalla_gis-ops:8002/route
       GENDER_SERVICE_URL_TEMPLATE: https://profile:8080/api/profiles/gender/{userId}
       MATCHING_CONSUMER_POLL_DELAY_MS: 60000
@@ -118,3 +106,14 @@ services:
       - "8080:8080"
     networks:
       - shared_network
+      
+networks:
+  shared_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  ride-matcher-logs:
+    driver: local
+  valhalla_data:
+    driver: local
