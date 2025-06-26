@@ -62,6 +62,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+    networks:
+      - shared_network
 
   mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
     image: mysql:latest
@@ -96,6 +98,14 @@ services:
     networks:
       - shared_network
 
+  ortool-server:
+    image: carpooling/ortool-solver:latest
+    container_name: ortool-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - shared_network
 
 volumes:
   mysql_data:
