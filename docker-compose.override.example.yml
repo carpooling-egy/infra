@@ -1,6 +1,4 @@
 ### This file is used to override the default docker-compose file for local development
-version: '3.8'
-
 services:
 
   apisix:
@@ -8,10 +6,10 @@ services:
     container_name: apisix
     restart: always
     environment:
-      APISIX_STAND_ALONE: "true"  
+      APISIX_STAND_ALONE: "true"
       APISIX_CONFIG_PATH: "/usr/local/apisix/conf/apisix.yaml"
       APISIX_LOG_LEVEL: debug
-    volumes: 
+    volumes:
       # Mount the local APISIX configuration file to make local development easier
       - ../api-gateway/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
@@ -51,6 +49,7 @@ services:
     networks:
       - shared_network
 
+  # Ride matching service - matches riders with drivers
   matching-service:
     build:
       context: ../matching_engine
@@ -58,8 +57,10 @@ services:
     container_name: matching-service
     restart: unless-stopped
     environment:
+      # In the future, this could be used to configure the matching interval
       - MATCHER_INTERVAL=15m
     volumes:
+      # Mount a volume for logs if needed
       - ride-matcher-logs:/app/logs
     healthcheck:
       test: [ "CMD", "ps", "aux", "|", "grep", "ride-matcher", "||", "exit", "1" ]
@@ -70,14 +71,16 @@ services:
     networks:
       - shared_network
 
-  mysql:
+  mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
     image: mysql:latest
     container_name: mysql
     restart: always
     environment:
+      # The current setup works if we will only need to create one user,
+      # else if another service wish to have a separate DB we need another way (maybe an initialization script)
       - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=profileDB 
-      - MYSQL_USER=${PROFILE_DB_USER}
+      - MYSQL_DATABASE=profileDB
+      - MYSQL_USER=${PROFILE_DB_USER} # has access to profileDB
       - MYSQL_PASSWORD=${PROFILE_DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
@@ -92,9 +95,9 @@ services:
     ports:
       - "8081:8080"        # adjust host:container ports as needed
     environment:
-      - SPRING_DATASOURCE_URL= jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
-      - SPRING_DATASOURCE_USERNAME= ${SPRING_DATASOURCE_USERNAME}
-      - SPRING_DATASOURCE_PASSWORD= ${SPRING_DATASOURCE_PASSWORD}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - TRIP_MIN_LEAD_TIME_MINUTES=30
       - TRIP_MAX_UPCOMING_TRIPS=30
       - TRIP_MAX_TRIPS_PER_DAY=5
@@ -116,3 +119,4 @@ networks:
 volumes:
   ride-matcher-logs:
     driver: local
+
