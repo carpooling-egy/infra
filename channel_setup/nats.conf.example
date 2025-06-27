@@ -1,0 +1,92 @@
+# ========================================================================== 
+# IMPORTANT: This file should be copied before deploying the NATS service. 
+# Ensure that placeholder passwords and sensitive information are replaced 
+# with real values in your deployment environment. 
+# ==========================================================================
+
+# NATS Server Configuration
+
+# Network settings
+host: 0.0.0.0
+port: 4222
+http: 8222 # HTTP port for monitoring
+
+# Connection timeouts
+ping_interval: 2m
+ping_max: 2
+
+# TLS configuration 
+# tls {
+#   cert_file: "/path/to/server-cert.pem"
+#   key_file: "/path/to/server-key.pem"
+#   ca_file: "/path/to/ca.pem"
+# }
+
+# JetStream configuration
+jetstream {
+  store_dir:  "/data/jetstream"
+
+  # Storage limits
+  max_memory_store: 1GB
+  max_file_store: 10GB
+
+  # Encryption settings
+  cipher: chachapoly
+
+  # TPM configuration 
+  # tpm {
+  #   keys_file: 
+  #   encryption_password: 
+  # }
+
+  # Buffering and request limits
+  max_buffered_msgs: 1000
+  max_buffered_size: 516MB
+  request_queue_limit: 10000
+
+  # Synchronization interval
+  sync_interval: 10s
+}
+# Authorization and user permissions
+authorization {
+  users = [
+    {
+      user: "stream_admin"
+      password: "{{STREAM_ADMIN_PASSWORD_PLACEHOLDER}}"
+      permissions: {
+        publish: [
+          "$JS.API.STREAM.CREATE.>",
+          "$JS.API.STREAM.UPDATE.>",
+          "$JS.API.STREAM.INFO.>",
+          "$JS.API.CONSUMER.CREATE.>",
+          "$JS.API.CONSUMER.INFO.>"
+        ]
+        subscribe: [
+          "$JS.API.STREAM.INFO.>",
+          "$JS.API.CONSUMER.INFO.>",
+          "_INBOX.>"
+        ]
+      }
+    },
+    {
+      user: "publisher"
+      password: "{{PUBLISHER_PASSWORD_PLACEHOLDER}}"
+      permissions: {
+        publish: ["matched_requests.>"]
+        subscribe: ["_INBOX.>"]
+      }
+    },
+    {
+      user: "subscriber"
+      password: "{{SUBSCRIBER_PASSWORD_PLACEHOLDER}}"
+      permissions: {
+        subscribe: ["matched_requests.>", "_INBOX.>"]
+        publish: ["$JS.ACK.MATCHED_REQUESTS.>", "$JS.API.CONSUMER.>"]
+      }
+    }
+  ]
+}
+
+# Server limits
+max_payload: 8MB
+max_pending: 200MB
