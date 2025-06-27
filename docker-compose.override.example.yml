@@ -48,6 +48,20 @@ services:
     networks:
     - shared_network
 
+  channel-init:
+    build:
+      context: ./channel_setup
+      dockerfile: Dockerfile
+    container_name: channel-init
+    depends_on:
+      - channel
+    environment:
+      - NATS_URL=nats://channel:4222
+      - NATS_USER=${NATS_ADMIN_USERNAME}
+      - NATS_PASSWORD=${NATS_ADMIN_PWD}
+    networks:
+      - shared_network
+
   # Ride matching service - matches riders with drivers
   matching-service:
     build:

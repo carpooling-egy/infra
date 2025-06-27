@@ -113,9 +113,7 @@ services:
       - shared_network
 
   channel-init:
-    build:
-      context: ./channel_setup
-      dockerfile: Dockerfile
+    image: carpooling/results-channel-init:latest
     container_name: channel-init
     depends_on:
       - channel
