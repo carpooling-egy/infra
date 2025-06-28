@@ -114,6 +114,20 @@ services:
     networks:
       - shared_network
 
+  trip-management-service:
+    image: carpooling/trip-management-service:latest
+    container_name: trip-management
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      PROFILE_SERVICE_URL_TEMPLATE: https://rude-laws-buy.loca.lt/api/profiles/enrich/{userId}
+
+    ports:
+      - "8080:8080"  # might need to change if conflicts with other services
+    networks:
+      - shared_network
 volumes:
   mysql_data:
   ride-matcher-logs:

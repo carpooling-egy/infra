@@ -112,6 +112,26 @@ services:
     networks:
       - shared_network
 
+
+  trip-management-service:
+    build:
+      context: ../trip-management-service
+      dockerfile: Dockerfile
+    container_name: trip-management-service
+    ports:
+      - "8081:8080"        # adjust host:container ports as needed
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - PROFILE_SERVICE_URL_TEMPLATE=https://rude-laws-buy.loca.lt/api/profiles/enrich/{userId}
+
+    depends_on:
+      - mysql
+      - profile-service
+    networks:
+      - shared_network
+
 networks:
   shared_network:
     driver: bridge
