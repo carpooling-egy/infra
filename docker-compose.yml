@@ -20,13 +20,28 @@ services:
   #   networks:
   #     - shared_network
 
-  nginx_lb:
+  # nginx OSRM Load Balancer
+  nginx_osrm_lb:
     image: nginx:latest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx_osrm.conf:/etc/nginx/nginx.conf
     ports:
       - "5000:5000"  # OSRM Car Load Balancer
       - "5001:5001"  # OSRM Foot Load Balancer
+    networks:
+      - shared_network
+
+  # nginx Valhalla Load Balancer
+  nginx_valhalla_lb:
+    image: nginx:latest
+    volumes:
+      - ./nginx_valhalla.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8002:8002"
+# If you want to use the Valhalla GIS Ops service in the docker compose file, uncomment the following lines
+# and add the name of the service to nginx_valhalla.conf upstream valhalla
+#    depends_on:
+#      - valhalla_gis_ops
     networks:
       - shared_network
 
