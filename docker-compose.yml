@@ -1,15 +1,14 @@
-
 services:
   apisix:
     image: carpooling/api-gateway:latest
     container_name: apisix
     restart: always
     environment:
-      APISIX_STAND_ALONE: "true"  
+      APISIX_STAND_ALONE: "true"
       APISIX_LOG_LEVEL: warn
     ports:
-      - 9080:9080  # APISIX HTTP Proxy
-      - 9443:9443  # APISIX HTTPS Proxy
+      - "9080:9080"  # APISIX HTTP Proxy
+      - "9443:9443"  # APISIX HTTPS Proxy
     networks:
       - shared_network
 
@@ -24,55 +23,54 @@ services:
   auth-service:
     image: carpooling/authentication:latest
     container_name: auth
+    restart: always
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-service-account.json
     volumes:
       - ${LOCAL_FIREBASE_JSON_PATH}:/app/firebase-service-account.json
-
     networks:
-    - shared_network
+      - shared_network
 
   profile-service:
     image: carpooling/profile:latest
     container_name: profile
+    restart: always
     environment:
       - PROFILE_DB_USER=${PROFILE_DB_USER}
       - PROFILE_DB_PASSWORD=${PROFILE_DB_PASSWORD}
       - PROFILE_DB_URL=jdbc:mysql://mysql:3306/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    depends_on:
+      - mysql
     networks:
       - shared_network
 
-    depends_on:
-      - mysql
-
-  # Ride matching service - matches riders with drivers
   matching-service:
     image: carpooling/matching-engine:latest
     container_name: matching-engine
     restart: unless-stopped
     environment:
-      # In the future, this could be used to configure the matching interval
       - MATCHER_INTERVAL=15m
       - NATS_URL=nats://channel:4222
       - NATS_USER=${NATS_PRODUCER_USERNAME}
       - NATS_PASSWORD=${NATS_PRODUCER_PWD}
     volumes:
-      # Mount a volume for logs if needed
       - ride-matcher-logs:/app/logs
     healthcheck:
-      test: [ "CMD", "ps", "aux", "|", "grep", "ride-matcher", "||", "exit", "1" ]
+      test: ["CMD", "ps", "aux", "|", "grep", "ride-matcher", "||", "exit", "1"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
+    networks:
+      - shared_network
 
   mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
     image: mysql:latest
     environment:
-    # The current setup works if we will only need to create one user, 
-    # else if another service wish to have a separate DB we need another way (maybe an initalization script)
+      # The current setup works if we will only need to create one user,
+      # else if another service wish to have a separate DB we need another way (maybe an initialization script)
       - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=profileDB 
+      - MYSQL_DATABASE=profileDB
       - MYSQL_USER=${PROFILE_DB_USER} # has access to profileDB
       - MYSQL_PASSWORD=${PROFILE_DB_PASSWORD}
     volumes:
@@ -84,12 +82,12 @@ services:
   valhalla_gis_ops:
     container_name: valhalla_gis-ops
     image: ghcr.io/nilsnolde/docker-valhalla/valhalla:latest
+    restart: unless-stopped
     ports:
       - "8002:8002"
     volumes:
       - valhalla_data:/custom_files
     environment:
-    # TODO: change tile_urls to the correct region
       - tile_urls=https://download.geofabrik.de/africa/egypt-latest.osm.pbf
       - use_tiles_ignore_pbf=True
       - force_rebuild=True
@@ -125,6 +123,26 @@ services:
     networks:
       - shared_network
 
+  request-management-service:
+    image: carpooling/request-management-service:latest
+    container_name: request-management
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      TRIP_MIN_LEAD_TIME_MINUTES: 30
+      TRIP_MAX_UPCOMING_TRIPS: 30
+      TRIP_MAX_TRIPS_PER_DAY: 5
+      TRIP_MAX_TRIPS_TODAY: 5
+      ROUTE_SERVICE_URL: http://valhalla_gis-ops:8002/route
+      GENDER_SERVICE_URL_TEMPLATE: https://profile:8080/api/profiles/gender/{userId}
+      MATCHING_CONSUMER_POLL_DELAY_MS: 60000
+      NATS_RECONNECT_WAIT_SECONDS: 10
+    ports:
+      - "8080:8080"
+    networks:
+      - shared_network
 
 volumes:
   mysql_data:
@@ -139,6 +157,8 @@ volumes:
   channel_data:
       driver: local
 
+
 networks:
   shared_network:
     driver: bridge
+

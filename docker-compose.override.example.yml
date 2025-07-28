@@ -6,16 +6,16 @@ services:
     container_name: apisix
     restart: always
     environment:
-      APISIX_STAND_ALONE: "true"  
+      APISIX_STAND_ALONE: "true"
       APISIX_CONFIG_PATH: "/usr/local/apisix/conf/apisix.yaml"
       APISIX_LOG_LEVEL: debug
-    volumes: 
+    volumes:
       # Mount the local APISIX configuration file to make local development easier
       - ../api-gateway/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
-      - 9080:9080  # APISIX HTTP Proxy
-      - 9443:9443  # APISIX HTTPS Proxy, not currently enabled
-      - 9180:9180  # APISIX Admin API helps in debugging
+      - "9080:9080"  # APISIX HTTP Proxy
+      - "9443:9443"  # APISIX HTTPS Proxy, not currently enabled
+      - "9180:9180"  # APISIX Admin API helps in debugging
     networks:
       - shared_network
 
@@ -31,22 +31,23 @@ services:
     volumes:
       - ${LOCAL_FIREBASE_JSON_PATH}:/app/firebase-service-account.json
     networks:
-    - shared_network
+      - shared_network
 
   profile-service:
     build:
       context: ../profile
       dockerfile: Dockerfile
+    container_name: profile-service
     ports:
       - "8080:8080"
     environment:
       - PROFILE_DB_USER=${PROFILE_DB_USER}
       - PROFILE_DB_PASSWORD=${PROFILE_DB_PASSWORD}
-      - PROFILE_DD_URL=jdbc:mysql://mysql:3306/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - PROFILE_DB_URL=jdbc:mysql://mysql:3306/profileDB?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     depends_on:
       - mysql
     networks:
-    - shared_network
+      - shared_network
 
   channel-init:
     build:
@@ -83,14 +84,18 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+    networks:
+      - shared_network
 
   mysql: # THis is a temp service for running locally, we will need to move to a managed service at some point
     image: mysql:latest
+    container_name: mysql
+    restart: always
     environment:
-    # The current setup works if we will only need to create one user, 
-    # else if another service wish to have a separate DB we need another way (maybe an initalization script)
+      # The current setup works if we will only need to create one user,
+      # else if another service wish to have a separate DB we need another way (maybe an initialization script)
       - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=profileDB 
+      - MYSQL_DATABASE=profileDB
       - MYSQL_USER=${PROFILE_DB_USER} # has access to profileDB
       - MYSQL_PASSWORD=${PROFILE_DB_PASSWORD}
     volumes:
@@ -98,7 +103,30 @@ services:
     networks:
       - shared_network
 
-
+  request-management-service:
+    build:
+      context: ../request-management-service
+      dockerfile: Dockerfile
+    container_name: request-management-service
+    ports:
+      - "8081:8080"        # adjust host:container ports as needed
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgis-dev-server.postgres.database.azure.com:5432/postgres?sslmode=require
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - TRIP_MIN_LEAD_TIME_MINUTES=30
+      - TRIP_MAX_UPCOMING_TRIPS=30
+      - TRIP_MAX_TRIPS_PER_DAY=5
+      - TRIP_MAX_TRIPS_TODAY=5
+      - ROUTE_SERVICE_URL=http://valhalla_gis-ops:8002/route
+      - GENDER_SERVICE_URL_TEMPLATE=https://profile-service:8080/api/profiles/gender/{userId}
+      - MATCHING_CONSUMER_POLL_DELAY_MS=60000
+      - NATS_RECONNECT_WAIT_SECONDS=10
+    depends_on:
+      - mysql
+      - profile-service
+    networks:
+      - shared_network
 
 networks:
   shared_network:
@@ -107,3 +135,4 @@ networks:
 volumes:
   ride-matcher-logs:
     driver: local
+
