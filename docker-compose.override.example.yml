@@ -49,6 +49,20 @@ services:
     networks:
       - shared_network
 
+  channel-init:
+    build:
+      context: ./channel_setup
+      dockerfile: Dockerfile
+    container_name: channel-init
+    depends_on:
+      - channel
+    environment:
+      - NATS_URL=nats://channel:4222
+      - NATS_USER=${NATS_ADMIN_USERNAME}
+      - NATS_PASSWORD=${NATS_ADMIN_PWD}
+    networks:
+      - shared_network
+
   # Ride matching service - matches riders with drivers
   matching-service:
     build:
@@ -59,6 +73,8 @@ services:
     environment:
       # In the future, this could be used to configure the matching interval
       - MATCHER_INTERVAL=15m
+      - NATS_USER=${NATS_PRODUCER_USERNAME}
+      - NATS_PASSWORD=${NATS_PRODUCER_PWD}
     volumes:
       # Mount a volume for logs if needed
       - ride-matcher-logs:/app/logs
